@@ -1,0 +1,24 @@
+"users"
+{
+	"76561198000000001"
+	{
+		"AccountName"		"fixture_account"
+		"PersonaName"		"Fixture User"
+		"MostRecent"		"0"
+		"Timestamp"		"1700000000"
+	}
+	"76561198000000002"
+	{
+		"AccountName"		"second_account"
+		"PersonaName"		"Second Fixture"
+		"MostRecent"		"1"
+		"Timestamp"		"1789056195"
+	}
+	"not-a-steam-id"
+	{
+		"AccountName"		"broken"
+		"PersonaName"		"Broken"
+		"MostRecent"		"0"
+		"Timestamp"		"0"
+	}
+}

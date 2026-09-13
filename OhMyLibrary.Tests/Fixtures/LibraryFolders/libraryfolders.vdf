@@ -1,0 +1,49 @@
+"libraryfolders"
+{
+	"0"
+	{
+		"path"		"__LIB0__"
+		"label"		""
+		"contentid"		"1111111111111111111"
+		"totalsize"		"0"
+		"update_clean_bytes_tally"		"25674273"
+		"time_last_update_verified"		"1783502911"
+		"apps"
+		{
+			"228980"		"1029919928"
+		}
+	}
+	"1"
+	{
+		"path"		"__LIB1__"
+		"label"		""
+		"contentid"		"2222222222222222222"
+		"totalsize"		"2048390066176"
+		"update_clean_bytes_tally"		"102938362456"
+		"time_last_update_verified"		"1789030948"
+		"apps"
+		{
+			"570"		"77246578977"
+			"9000101"		"12884901888"
+			"9000202"		"3221225472"
+			"9000303"		"536870912"
+			"9000404"		"98765432100"
+			"9000505"		"1073741824"
+			"9000606"		"274877906944"
+		}
+	}
+	"2"
+	{
+		"path"		"__LIB2__"
+		"label"		"Slow spinning rust"
+		"contentid"		"3333333333333333333"
+		"totalsize"		"2000381014016"
+		"update_clean_bytes_tally"		"2148167698"
+		"time_last_update_verified"		"1788248155"
+		"apps"
+		{
+			"9000707"		"4294967296"
+			"9000808"		"17179869184"
+		}
+	}
+}

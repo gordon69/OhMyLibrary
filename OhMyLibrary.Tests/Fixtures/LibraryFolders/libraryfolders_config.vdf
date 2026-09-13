@@ -1,0 +1,23 @@
+"LibraryFolders"
+{
+	"TimeNextStatsReport"		"1789030948"
+	"ContentStatsID"		"-1234567890123456789"
+	"1"		"__LIB1__"
+	"2"
+	{
+		"path"		"__LIB2__"
+		"label"		""
+		"mounted"		"1"
+		"contentid"		"8275797728893432557"
+	}
+	"3"
+	{
+		"path"		"__MISSING__"
+		"label"		"unplugged drive"
+		"totalsize"		"2000381014016"
+		"apps"
+		{
+			"6060"		"10296173294"
+		}
+	}
+}

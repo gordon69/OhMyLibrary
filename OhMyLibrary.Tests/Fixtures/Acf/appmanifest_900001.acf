@@ -1,0 +1,17 @@
+"AppState"
+{
+	"appid"		"900001"
+	"universe"		"1"
+	"name"		"Fixture Update Required"
+	"StateFlags"		"6"
+	"installdir"		"Fixture Update Required"
+	"lastupdated"		"1700000000"
+	"LastPlayed"		"1700001000"
+	"SizeOnDisk"		"1234567890"
+	"StagingSize"		"0"
+	"buildid"		"1000"
+	"LastOwner"		"76561198000000001"
+	"BytesToDownload"		"0"
+	"BytesDownloaded"		"0"
+	"TargetBuildID"		"2000"
+}

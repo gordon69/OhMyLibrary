@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>OhMyLibrary.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- OhMyLibrary.App is a WinExe, but referencing it is just an assembly reference, and the WPF
+         framework reference it carries flows through here — so System.Windows types resolve without
+         <UseWPF>true</UseWPF> on this project. Setting UseWPF would also swap the SDK's implicit
+         usings for the WPF set, which drops System.IO and System.Net.Http and breaks the existing
+         fixtures. Without this reference nothing in the App project — LibrarySyncCoordinator above
+         all — can be tested at all. Tests that need a UI thread use Infrastructure/StaDispatcher. -->
+    <ProjectReference Include="..\OhMyLibrary.App\OhMyLibrary.App.csproj" />
+    <ProjectReference Include="..\OhMyLibrary.Core\OhMyLibrary.Core.csproj" />
+    <ProjectReference Include="..\OhMyLibrary.Data\OhMyLibrary.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
