@@ -1,0 +1,395 @@
+<Page
+    x:Class="OhMyLibrary.App.Views.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:OhMyLibrary.App.Views.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    d:DataContext="{d:DesignInstance pages:SettingsPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="700"
+    d:DesignWidth="1000"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <Style x:Key="SettingsSection" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource OmlCardCornerRadius}" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <Style
+            x:Key="FieldLabel"
+            BasedOn="{StaticResource OmlSubtleText}"
+            TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+
+        <Style
+            x:Key="ActionButton"
+            BasedOn="{StaticResource {x:Type ui:Button}}"
+            TargetType="ui:Button">
+            <Setter Property="Margin" Value="0,0,8,8" />
+        </Style>
+
+        <Style
+            x:Key="DiagnosticValue"
+            BasedOn="{StaticResource OmlBodyText}"
+            TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Style="{StaticResource OmlPageRoot}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            Style="{StaticResource OmlPageTitleText}"
+            Text="Settings" />
+
+        <TextBlock
+            Grid.Row="1"
+            Margin="0,0,0,12"
+            Style="{StaticResource OmlErrorText}"
+            Text="{Binding ViewModel.ErrorMessage, Mode=OneWay}"
+            Visibility="{Binding ViewModel.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+        <ScrollViewer
+            Grid.Row="2"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+
+                <!--  Steam account  -->
+                <Border Style="{StaticResource SettingsSection}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Steam account" />
+                        <TextBlock Style="{StaticResource OmlBodyText}" Text="Without a key OhMyLibrary still reads everything Steam keeps on this machine - installed games, sizes, playtime and art. The key only adds owned-but-not-installed games and the friends list." />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Steam Web API key" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:PasswordBox
+                                Grid.Column="0"
+                                Password="{Binding ViewModel.ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="Paste your key here"
+                                RevealButtonEnabled="True"
+                                ToolTip="Masked by default. Use the eye button to reveal it." />
+
+                            <ui:Button
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Command="{Binding ViewModel.PasteApiKeyCommand, Mode=OneWay}"
+                                Content="Paste"
+                                ToolTip="Paste the key from the clipboard">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="ClipboardPaste24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button
+                                Grid.Column="2"
+                                Margin="8,0,0,0"
+                                Command="{Binding ViewModel.ClearApiKeyCommand, Mode=OneWay}"
+                                Content="Clear"
+                                ToolTip="Remove the key. The rest of the app keeps working.">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Dismiss24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+                        </Grid>
+
+                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Style="{StaticResource OmlSubtleText}"
+                                Text="Currently saved:" />
+                            <TextBlock
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource OmlSubtleText}"
+                                Text="{Binding ViewModel.MaskedApiKey, Mode=OneWay}" />
+                            <ui:HyperlinkButton
+                                Margin="12,0,0,0"
+                                Content="Get a key"
+                                NavigateUri="https://steamcommunity.com/dev/apikey"
+                                ToolTip="Opens steamcommunity.com/dev/apikey in your browser" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="SteamID64" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBox
+                                Grid.Column="0"
+                                PlaceholderText="Leave empty to use the signed-in account"
+                                Text="{Binding ViewModel.SteamId64, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <ui:Button
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Command="{Binding ViewModel.DetectSteamIdCommand, Mode=OneWay}"
+                                Content="Detect"
+                                ToolTip="Read the id from the Steam client's own loginusers.vdf">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="PersonQuestionMark24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+                        </Grid>
+
+                        <TextBlock
+                            Margin="0,6,0,0"
+                            Style="{StaticResource OmlSubtleText}"
+                            Text="{Binding ViewModel.LocalAccountsText, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Presentation  -->
+                <Border Style="{StaticResource SettingsSection}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Appearance" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Theme (applied immediately)" />
+                        <ComboBox
+                            Width="220"
+                            HorizontalAlignment="Left"
+                            ItemsSource="{Binding ViewModel.Themes, Mode=OneWay}"
+                            SelectedItem="{Binding ViewModel.Theme, Mode=TwoWay}" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Store language for tag names" />
+                        <ComboBox
+                            Width="220"
+                            HorizontalAlignment="Left"
+                            ItemsSource="{Binding ViewModel.Languages, Mode=OneWay}"
+                            SelectedItem="{Binding ViewModel.Language, Mode=TwoWay}" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Library card width" />
+                        <Grid Width="420" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Slider
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                IsSnapToTickEnabled="True"
+                                Maximum="420"
+                                Minimum="120"
+                                TickFrequency="10"
+                                Value="{Binding ViewModel.CardWidth, Mode=TwoWay}" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource OmlBodyText}"
+                                Text="{Binding ViewModel.CardWidthText, Mode=OneWay}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!--  Data  -->
+                <Border Style="{StaticResource SettingsSection}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Data" />
+                        <TextBlock Style="{StaticResource OmlBodyText}" Text="Local files are cheap to re-read; the Web API is rate limited, so its refreshes are manual and slow." />
+
+                        <WrapPanel Margin="0,12,0,0" Orientation="Horizontal">
+                            <ui:Button
+                                Command="{Binding ViewModel.RescanLocalCommand, Mode=OneWay}"
+                                Content="Rescan local files"
+                                Style="{StaticResource ActionButton}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="ArrowSync24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button
+                                Command="{Binding ViewModel.RefreshOwnedGamesCommand, Mode=OneWay}"
+                                Content="Refresh owned games"
+                                Style="{StaticResource ActionButton}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Cloud24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button
+                                Command="{Binding ViewModel.RefreshFriendsCommand, Mode=OneWay}"
+                                Content="Refresh friends"
+                                Style="{StaticResource ActionButton}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="People24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button
+                                Appearance="Secondary"
+                                Command="{Binding ViewModel.RefreshFriendsCancelCommand, Mode=OneWay}"
+                                Content="Cancel friends refresh"
+                                Style="{StaticResource ActionButton}" />
+
+                            <ui:Button
+                                Command="{Binding ViewModel.ClearImageCacheCommand, Mode=OneWay}"
+                                Content="Clear image cache"
+                                Style="{StaticResource ActionButton}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Broom24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button
+                                Command="{Binding ViewModel.OpenLogFolderCommand, Mode=OneWay}"
+                                Content="Open log folder"
+                                Style="{StaticResource ActionButton}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="FolderOpen24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button
+                                Command="{Binding ViewModel.OpenDataFolderCommand, Mode=OneWay}"
+                                Content="Open data folder"
+                                Style="{StaticResource ActionButton}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="FolderOpen24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+                        </WrapPanel>
+
+                        <TextBlock
+                            Style="{StaticResource OmlSubtleText}"
+                            Text="{Binding ViewModel.ProgressMessage, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Diagnostics  -->
+                <Border Style="{StaticResource SettingsSection}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Style="{StaticResource OmlSectionHeaderText}"
+                                Text="Detected installation" />
+
+                            <ui:Button
+                                Grid.Column="1"
+                                Appearance="Secondary"
+                                Command="{Binding ViewModel.RefreshDiagnosticsCommand, Mode=OneWay}"
+                                Content="Rescan">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="SearchInfo24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Steam path" />
+                        <TextBlock Style="{StaticResource DiagnosticValue}" Text="{Binding ViewModel.SteamPathText, Mode=OneWay}" />
+
+                        <ui:Button
+                            Margin="0,0,0,8"
+                            Appearance="Secondary"
+                            Command="{Binding ViewModel.OpenSteamFolderCommand, Mode=OneWay}"
+                            Content="Open Steam folder"
+                            Visibility="{Binding ViewModel.SteamFound, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Steam executable" />
+                        <TextBlock Style="{StaticResource DiagnosticValue}" Text="{Binding ViewModel.SteamExecutableText, Mode=OneWay}" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Library folders" />
+                        <ItemsControl ItemsSource="{Binding ViewModel.LibraryFolders, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,8">
+                                        <TextBlock Style="{StaticResource DiagnosticValue}" Text="{Binding Path, Mode=OneWay}" />
+                                        <TextBlock
+                                            Margin="0,-6,0,0"
+                                            Style="{StaticResource OmlSubtleText}"
+                                            Text="{Binding Detail, Mode=OneWay}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Database" />
+                        <TextBlock Style="{StaticResource DiagnosticValue}" Text="{Binding ViewModel.DatabasePath, Mode=OneWay}" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Logs" />
+                        <TextBlock Style="{StaticResource DiagnosticValue}" Text="{Binding ViewModel.LogsDirectory, Mode=OneWay}" />
+
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Version" />
+                        <TextBlock Style="{StaticResource DiagnosticValue}" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border
+            Grid.Row="3"
+            Margin="0,12,0,0"
+            Padding="0,12,0,0"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource OmlSubtleText}"
+                    Text="{Binding ViewModel.StatusMessage, Mode=OneWay}" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <ui:Button
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.RevertCommand, Mode=OneWay}"
+                        Content="Revert" />
+
+                    <ui:Button
+                        Margin="8,0,0,0"
+                        Appearance="Primary"
+                        Command="{Binding ViewModel.SaveCommand, Mode=OneWay}"
+                        Content="Save">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Save24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

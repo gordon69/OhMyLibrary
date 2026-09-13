@@ -1,0 +1,395 @@
+<Page
+    x:Class="OhMyLibrary.App.Views.Pages.CollectionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:OhMyLibrary.App.Views.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    d:DataContext="{d:DesignInstance pages:CollectionsPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="700"
+    d:DesignWidth="1100"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!--
+            Declared per page rather than in Styles/Theme.xaml so the four pages stay independent
+            of each other's edits. A page-local key shadows a global one harmlessly.
+        -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <Style
+            x:Key="RowIconButton"
+            BasedOn="{StaticResource {x:Type ui:Button}}"
+            TargetType="ui:Button">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="Padding" Value="6,4,6,4" />
+            <Setter Property="Margin" Value="2,0,0,0" />
+        </Style>
+
+        <Style
+            x:Key="CollectionRowContainer"
+            BasedOn="{StaticResource {x:Type ListBoxItem}}"
+            TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Style="{StaticResource OmlPageRoot}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            Style="{StaticResource OmlPageTitleText}"
+            Text="Collections" />
+
+        <TextBlock
+            Grid.Row="1"
+            Margin="{StaticResource OmlSectionSpacing}"
+            Style="{StaticResource OmlSubtleText}"
+            Text="Your own shelves. Deleting a collection never deletes a game." />
+
+        <TextBlock
+            Grid.Row="2"
+            Margin="0,0,0,8"
+            Style="{StaticResource OmlErrorText}"
+            Text="{Binding ViewModel.ErrorMessage, Mode=OneWay}"
+            Visibility="{Binding ViewModel.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360" MinWidth="280" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!--  Left: the collections themselves.  -->
+            <Grid Grid.Column="0" Margin="0,0,16,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBox
+                        Grid.Column="0"
+                        PlaceholderText="New collection name"
+                        Text="{Binding ViewModel.NewCollectionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <ui:TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding ViewModel.CreateCollectionCommand, Mode=OneWay}" />
+                        </ui:TextBox.InputBindings>
+                    </ui:TextBox>
+
+                    <ui:Button
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        Appearance="Primary"
+                        Command="{Binding ViewModel.CreateCollectionCommand, Mode=OneWay}"
+                        Content="Create"
+                        ToolTip="Create an empty collection">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Add24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <ListBox
+                        x:Name="CollectionsList"
+                        AllowDrop="True"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Drop="OnCollectionsDrop"
+                        ItemContainerStyle="{StaticResource CollectionRowContainer}"
+                        ItemsSource="{Binding ViewModel.Collections, Mode=OneWay}"
+                        PreviewMouseLeftButtonDown="OnCollectionsPreviewMouseLeftButtonDown"
+                        PreviewMouseMove="OnCollectionsPreviewMouseMove"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        SelectedItem="{Binding ViewModel.SelectedCollection, Mode=TwoWay}"
+                        Visibility="{Binding ViewModel.HasCollections, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="{StaticResource OmlCardPadding}" Style="{StaticResource OmlCardBorder}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0"
+                                            Style="{StaticResource OmlSectionHeaderText}"
+                                            Text="{Binding Name, Mode=OneWay}"
+                                            ToolTip="{Binding Name, Mode=OneWay}"
+                                            Visibility="{Binding IsNotEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                                        <ui:TextBox
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Text="{Binding EditName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            Visibility="{Binding IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                            <ui:TextBox.InputBindings>
+                                                <KeyBinding
+                                                    Key="Enter"
+                                                    Command="{Binding DataContext.ViewModel.CommitRenameCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                    CommandParameter="{Binding}" />
+                                                <KeyBinding
+                                                    Key="Escape"
+                                                    Command="{Binding DataContext.ViewModel.CancelRenameCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                    CommandParameter="{Binding}" />
+                                            </ui:TextBox.InputBindings>
+                                        </ui:TextBox>
+
+                                        <StackPanel
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Orientation="Horizontal">
+                                            <ui:Button
+                                                Command="{Binding DataContext.ViewModel.MoveUpCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource RowIconButton}"
+                                                ToolTip="Move up">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="ArrowUp24" />
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button
+                                                Command="{Binding DataContext.ViewModel.MoveDownCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource RowIconButton}"
+                                                ToolTip="Move down">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="ArrowDown24" />
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button
+                                                Command="{Binding DataContext.ViewModel.BeginRenameCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource RowIconButton}"
+                                                ToolTip="Rename"
+                                                Visibility="{Binding IsNotEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="Rename24" />
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button
+                                                Command="{Binding DataContext.ViewModel.CommitRenameCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource RowIconButton}"
+                                                ToolTip="Save the new name"
+                                                Visibility="{Binding IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="Checkmark24" />
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button
+                                                Command="{Binding DataContext.ViewModel.DeleteCollectionCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource RowIconButton}"
+                                                ToolTip="Delete this collection">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="Delete24" />
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                        </StackPanel>
+
+                                        <TextBlock
+                                            Grid.Row="1"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Style="{StaticResource OmlSubtleText}"
+                                            Text="{Binding GameCountText, Mode=OneWay}" />
+
+                                        <ItemsControl
+                                            Grid.Row="2"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,8,0,0"
+                                            ItemsSource="{Binding Covers, Mode=OneWay}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border
+                                                        Width="30"
+                                                        Height="45"
+                                                        Margin="0,0,4,0"
+                                                        Style="{StaticResource OmlCardCover}"
+                                                        ToolTip="{Binding Name, Mode=OneWay}">
+                                                        <Image Source="{Binding Cover, Mode=OneWay}" Style="{StaticResource OmlCardCoverImage}" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel
+                        VerticalAlignment="Top"
+                        Visibility="{Binding ViewModel.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="No collections yet" />
+                        <TextBlock Style="{StaticResource OmlBodyText}" Text="Name one above and press Create. Collections live only in OhMyLibrary - Steam never sees them." />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!--  Right: what is inside the selected collection.  -->
+            <Grid Grid.Column="1">
+                <TextBlock
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource OmlBodyText}"
+                    Text="Select a collection on the left to see and edit its games."
+                    Visibility="{Binding ViewModel.HasNoSelection, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                <Grid Visibility="{Binding ViewModel.HasSelection, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="{Binding ViewModel.SelectedCollection.Name, Mode=OneWay}" />
+                        <TextBlock Style="{StaticResource OmlSubtleText}" Text="{Binding ViewModel.SelectedCollection.GameCountText, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ViewModel.Members, Mode=OneWay}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Width="110" Margin="{StaticResource OmlCardMargin}">
+                                            <Grid>
+                                                <Border
+                                                    Width="110"
+                                                    Height="165"
+                                                    Style="{StaticResource OmlCardCover}">
+                                                    <Image Source="{Binding Cover, Mode=OneWay}" Style="{StaticResource OmlCardCoverImage}" />
+                                                </Border>
+                                                <ui:Button
+                                                    Margin="4"
+                                                    Padding="4"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Appearance="Secondary"
+                                                    Command="{Binding DataContext.ViewModel.RemoveGameCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip="Remove from this collection">
+                                                    <ui:Button.Icon>
+                                                        <ui:SymbolIcon Symbol="Dismiss24" />
+                                                    </ui:Button.Icon>
+                                                </ui:Button>
+                                            </Grid>
+                                            <TextBlock
+                                                Style="{StaticResource OmlCardTitle}"
+                                                Text="{Binding Name, Mode=OneWay}"
+                                                ToolTip="{Binding Name, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <TextBlock
+                            VerticalAlignment="Top"
+                            Style="{StaticResource OmlBodyText}"
+                            Text="This collection is empty. Find a game below and add it."
+                            Visibility="{Binding ViewModel.SelectionIsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Add a game" />
+
+                        <ui:TextBox
+                            Margin="0,0,0,8"
+                            ClearButtonEnabled="True"
+                            PlaceholderText="Search your library"
+                            Text="{Binding ViewModel.GameSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <ListBox
+                            MaxHeight="180"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ItemsSource="{Binding ViewModel.SearchResults, Mode=OneWay}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemContainerStyle>
+                                <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource OmlBodyText}"
+                                            Text="{Binding Name, Mode=OneWay}"
+                                            TextTrimming="CharacterEllipsis"
+                                            TextWrapping="NoWrap" />
+
+                                        <ui:Button
+                                            Grid.Column="1"
+                                            Command="{Binding DataContext.ViewModel.AddGameCommand, RelativeSource={RelativeSource AncestorType={x:Type Page}}}"
+                                            CommandParameter="{Binding}"
+                                            Content="Add"
+                                            Style="{StaticResource RowIconButton}">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="Add24" />
+                                            </ui:Button.Icon>
+                                        </ui:Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <ui:ProgressRing
+            Grid.Row="3"
+            Width="48"
+            Height="48"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            IsIndeterminate="True"
+            Visibility="{Binding ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+    </Grid>
+</Page>
