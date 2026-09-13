@@ -1,0 +1,75 @@
+﻿<!--
+    Shared spacing, typography and brushes.
+
+    WPF-UI supplies the control templates and the theme brushes; this dictionary only adds the few
+    values the app repeats. Colours are always taken from WPF-UI's theme brushes through
+    DynamicResource so they follow a light/dark switch — never alias one into a local SolidColorBrush,
+    that snapshot goes stale the moment the theme changes.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--  Spacing scale. Everything in the app is a multiple of 4.  -->
+    <sys:Double x:Key="OmlGutterSmall">4</sys:Double>
+    <sys:Double x:Key="OmlGutter">8</sys:Double>
+    <sys:Double x:Key="OmlGutterLarge">16</sys:Double>
+
+    <Thickness x:Key="OmlPagePadding">24,12,24,24</Thickness>
+    <Thickness x:Key="OmlSectionSpacing">0,0,0,16</Thickness>
+    <Thickness x:Key="OmlCardMargin">0,0,12,12</Thickness>
+    <Thickness x:Key="OmlCardPadding">10,8,10,10</Thickness>
+
+    <CornerRadius x:Key="OmlCardCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="OmlBadgeCornerRadius">4</CornerRadius>
+
+    <!--  A grid cover is a 300x450 Steam capsule: height = width * 1.5.  -->
+    <sys:Double x:Key="OmlCoverAspectRatio">1.5</sys:Double>
+
+    <!--  Stand-in for a game with no art. Theme independent on purpose: it reads on both.  -->
+    <LinearGradientBrush x:Key="OmlPlaceholderCoverBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0" Color="#FF2B3245" />
+        <GradientStop Offset="1" Color="#FF171B26" />
+    </LinearGradientBrush>
+
+    <!--  Typography. Sizes match the Fluent ramp WPF-UI uses.  -->
+    <Style x:Key="OmlPageTitleText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <Style x:Key="OmlSectionHeaderText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style x:Key="OmlBodyText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="OmlSubtleText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style x:Key="OmlErrorText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--  Root panel of every page. Gives all four pages the same gutters.  -->
+    <Style x:Key="OmlPageRoot" TargetType="Grid">
+        <Setter Property="Margin" Value="{StaticResource OmlPagePadding}" />
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,83 @@
+﻿<!--
+    The library card visual.
+
+    Keys defined in Styles/Theme.xaml are referenced with DynamicResource, not StaticResource: at
+    parse time this dictionary is standalone and knows nothing about its siblings. Both are merged
+    side by side in App.xaml, which is where the lookup is resolved.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  Outer chrome of a grid card. Put the cover, the title and the badges inside it.  -->
+    <Style x:Key="OmlCardBorder" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource OmlCardCornerRadius}" />
+        <Setter Property="Margin" Value="{DynamicResource OmlCardMargin}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The cover area. Bind Width to UiOptions.CardWidth and let the aspect ratio do the rest;
+        the image itself comes from IImageCacheService, decoded at exactly this width.
+    -->
+    <Style x:Key="OmlCardCover" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource OmlPlaceholderCoverBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource OmlCardCornerRadius}" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!--  The image inside OmlCardCover. Collapsed by the caller while the source is null.  -->
+    <Style x:Key="OmlCardCoverImage" TargetType="Image">
+        <Setter Property="Stretch" Value="UniformToFill" />
+        <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!--  Game name under the cover.  -->
+    <Style x:Key="OmlCardTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <!--  "Update required", "Not installed", playtime — one line of muted metadata.  -->
+    <Style x:Key="OmlCardCaption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <!--  Small pill over the cover: an install state or a tag.  -->
+    <Style x:Key="OmlCardBadge" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource OmlBadgeCornerRadius}" />
+        <Setter Property="Padding" Value="6,2,6,2" />
+        <Setter Property="Margin" Value="6" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <!--  Download progress strip pinned to the bottom of the cover while GameEntry.IsBusy.  -->
+    <Style x:Key="OmlCardProgress" TargetType="ProgressBar">
+        <Setter Property="Height" Value="4" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlAltFillColorSecondaryBrush}" />
+        <Setter Property="Minimum" Value="0" />
+        <Setter Property="Maximum" Value="1" />
+    </Style>
+
+</ResourceDictionary>

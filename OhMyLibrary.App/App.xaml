@@ -1,0 +1,27 @@
+﻿<Application
+    x:Class="OhMyLibrary.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <!--
+        No StartupUri: the main window is resolved from the DI container by ApplicationHostService so
+        that it, and every page, gets constructor injection.
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!--
+                    WPF-UI 4.x theme plumbing. ThemesDictionary carries the colour ramp and must come
+                    first; ControlsDictionary carries the control templates that consume it. The value
+                    here is only the boot theme - MainWindow re-applies the user's choice through
+                    ApplicationThemeManager once settings are loaded.
+                -->
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+
+                <ResourceDictionary Source="pack://application:,,,/Styles/Theme.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Styles/Cards.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
