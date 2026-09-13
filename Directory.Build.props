@@ -1,0 +1,23 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Version>0.1.0</Version>
+    <Authors>gordon69</Authors>
+    <Product>OhMyLibrary</Product>
+    <Company>OhMyLibrary</Company>
+    <Copyright>Copyright (c) 2026 gordon69</Copyright>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+  </PropertyGroup>
+
+</Project>

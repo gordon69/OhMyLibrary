@@ -1,0 +1,35 @@
+# Normalise line endings in the repository, check them out native.
+* text=auto
+
+# Sources. Checked out CRLF because this is a Windows-only project and the
+# tooling (Visual Studio, MSBuild, PowerShell) expects it.
+*.cs            text diff=csharp eol=crlf
+*.xaml          text eol=crlf
+*.csproj        text eol=crlf
+*.props         text eol=crlf
+*.targets       text eol=crlf
+*.sln           text eol=crlf
+*.ps1           text eol=crlf
+*.editorconfig  text eol=crlf
+
+# Docs and config travel between platforms; leave the working tree alone.
+*.md            text
+*.json          text
+*.yml           text
+*.yaml          text
+
+# Steam fixtures must stay byte-exact.
+#
+# These are the regression net for the VDF and ACF parsers. Some are binary
+# containers (appinfo.vdf), one is deliberate garbage, and several text ones sit
+# a single edit away from git's NUL-byte heuristic classifying them as text --
+# at which point CRLF translation would silently corrupt them and the parser
+# tests would fail for a reason nobody would look for. A uniform rule cannot be
+# got wrong by whoever adds the next fixture.
+*.vdf           binary
+*.acf           binary
+
+# Images.
+*.png           binary
+*.ico           binary
+*.jpg           binary

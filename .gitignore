@@ -2,14 +2,18 @@
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
-[Ll]og/
-[Ll]ogs/
 artifacts/
 publish/
 
+## Build logs
+*.binlog
+msbuild.log
+msbuild.err
+msbuild.wrn
+*.log
+
 ## Visual Studio / Rider / VS Code
 .vs/
-.vscode/
 .idea/
 *.user
 *.suo
@@ -18,19 +22,40 @@ publish/
 *.rsuser
 *.DotSettings.user
 
+# VS Code: keep shared launch/task definitions, ignore per-user state.
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/settings.json
+
 ## NuGet
 *.nupkg
 *.snupkg
-packages/
-!packages/build/
 project.lock.json
 project.fragment.lock.json
 
-## Secrets — Steam Web API key never goes in the repo
+## Secrets and local state
+#
+# The Steam Web API key lives in one of these two and must never be committed.
+# user-settings.json is what the in-app Settings page writes; it normally sits in
+# %LOCALAPPDATA%\OhMyLibrary, but a stray copy in the working tree would carry a
+# live key straight into the repository.
 appsettings.local.json
 appsettings.*.local.json
+user-settings.json
 secrets.json
 *.local.env
+
+## Local runtime data
+#
+# Scoped deliberately: an unscoped *.db would also swallow a test fixture or a
+# seed database that a future change legitimately needs to track.
+library.db
+library.db-shm
+library.db-wal
+window.json
+imagecache/
 
 ## OS
 Thumbs.db
@@ -49,6 +74,3 @@ coverage*.info
 
 ## Local scratch
 scratch/
-*.db
-*.db-shm
-*.db-wal
