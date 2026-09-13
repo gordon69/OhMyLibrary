@@ -1,0 +1,310 @@
+<Page
+    x:Class="OhMyLibrary.App.Views.Pages.LibraryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:OhMyLibrary.App.Views.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:OhMyLibrary.App.Views.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:OhMyLibrary.App.ViewModels.Pages"
+    d:DataContext="{d:DesignInstance pages:LibraryPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="800"
+    d:DesignWidth="1200"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <Style x:Key="LibraryFacetList" TargetType="ItemsControl">
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <DataTemplate x:Key="LibraryFacetTemplate" DataType="{x:Type vm:FilterOption}">
+            <CheckBox
+                Margin="0,2,0,2"
+                Content="{Binding Label, Mode=OneWay}"
+                IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Style="{StaticResource OmlPageRoot}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Title and the two refresh paths: the cheap local rescan and the expensive Web API one.  -->
+        <Grid Grid.Row="0" Margin="{StaticResource OmlSectionSpacing}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <TextBlock Style="{StaticResource OmlPageTitleText}" Text="Library" />
+                <TextBlock
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Bottom"
+                    Style="{StaticResource OmlSubtleText}"
+                    Text="{Binding ViewModel.CountsText, Mode=OneWay}" />
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <ui:Button
+                    Margin="0,0,8,0"
+                    Command="{Binding ViewModel.RefreshLocalCommand, Mode=OneWay}"
+                    Content="Rescan"
+                    ToolTip="Re-read the installed-game manifests on disk">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="ArrowClockwise24" />
+                    </ui:Button.Icon>
+                </ui:Button>
+
+                <ui:Button
+                    Command="{Binding ViewModel.RefreshRemoteCommand, Mode=OneWay}"
+                    Content="Refresh from Steam"
+                    ToolTip="Fetch the owned-games list and metadata from the Steam Web API">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="CloudArrowDown24" />
+                    </ui:Button.Icon>
+                </ui:Button>
+            </StackPanel>
+        </Grid>
+
+        <!--  Search, sort and the filter pane toggle.  -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="420" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ui:TextBox
+                x:Name="SearchBox"
+                Grid.Column="0"
+                ClearButtonEnabled="True"
+                PlaceholderText="Search the library  (Ctrl+F)"
+                Text="{Binding ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                <ui:TextBox.Icon>
+                    <ui:SymbolIcon Symbol="Search24" />
+                </ui:TextBox.Icon>
+            </ui:TextBox>
+
+            <ComboBox
+                Grid.Column="1"
+                Width="180"
+                Margin="8,0,0,0"
+                DisplayMemberPath="Name"
+                ItemsSource="{Binding ViewModel.SortOptions, Mode=OneWay}"
+                SelectedItem="{Binding ViewModel.SelectedSort, Mode=TwoWay}"
+                ToolTip="Sort order" />
+
+            <!--  WPF-UI 4.3 restyles WPF's own ToggleButton but adds no ToggleButton of its own.  -->
+            <ToggleButton
+                Grid.Column="2"
+                Margin="8,0,0,0"
+                Padding="12,0,12,0"
+                IsChecked="{Binding ViewModel.IsFilterPaneOpen, Mode=TwoWay}"
+                ToolTip="Show the genre, tag and collection filters">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Margin="0,0,8,0" Symbol="Filter24" />
+                    <TextBlock VerticalAlignment="Center" Text="Filters" />
+                </StackPanel>
+            </ToggleButton>
+        </Grid>
+
+        <!--  Degraded-state note and the last guarded failure. Both are one line and both can be absent.  -->
+        <StackPanel Grid.Row="2">
+            <TextBlock
+                Margin="0,0,0,8"
+                Style="{StaticResource OmlSubtleText}"
+                Text="{Binding ViewModel.StatusDetail, Mode=OneWay}"
+                TextWrapping="Wrap"
+                Visibility="{Binding ViewModel.HasStatusDetail, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+            <TextBlock
+                Margin="0,0,0,8"
+                Style="{StaticResource OmlErrorText}"
+                Text="{Binding ViewModel.ErrorMessage, Mode=OneWay}"
+                Visibility="{Binding ViewModel.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!--  The facet rail. Collapsed by default so the grid gets the whole window.  -->
+            <Border
+                Grid.Column="0"
+                Width="248"
+                Margin="0,0,16,0"
+                Padding="12"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource OmlCardCornerRadius}"
+                Visibility="{Binding ViewModel.IsFilterPaneOpen, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Show" />
+
+                        <CheckBox
+                            Margin="0,0,0,4"
+                            Content="Installed only"
+                            IsChecked="{Binding ViewModel.InstalledOnly, Mode=TwoWay}" />
+
+                        <CheckBox
+                            Margin="0,0,0,12"
+                            Content="Update available"
+                            IsChecked="{Binding ViewModel.NeedsUpdateOnly, Mode=TwoWay}" />
+
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Collection" />
+
+                        <ComboBox
+                            Margin="0,0,0,12"
+                            HorizontalAlignment="Stretch"
+                            DisplayMemberPath="Name"
+                            ItemsSource="{Binding ViewModel.Collections, Mode=OneWay}"
+                            SelectedItem="{Binding ViewModel.SelectedCollection, Mode=TwoWay}" />
+
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Genres" />
+
+                        <ItemsControl
+                            ItemTemplate="{StaticResource LibraryFacetTemplate}"
+                            ItemsSource="{Binding ViewModel.GenreFilters, Mode=OneWay}"
+                            Style="{StaticResource LibraryFacetList}" />
+
+                        <TextBlock Style="{StaticResource OmlSectionHeaderText}" Text="Tags" />
+
+                        <ItemsControl
+                            ItemTemplate="{StaticResource LibraryFacetTemplate}"
+                            ItemsSource="{Binding ViewModel.TagFilters, Mode=OneWay}"
+                            Style="{StaticResource LibraryFacetList}" />
+
+                        <ui:Button
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding ViewModel.ClearFiltersCommand, Mode=OneWay}"
+                            Content="Clear filters">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="Broom24" />
+                            </ui:Button.Icon>
+                        </ui:Button>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <!--
+                    The grid itself. A ListBox gives selection and keyboard navigation for free; the
+                    wrapping is done by WPF-UI's VirtualizingWrapPanel, because WPF's own
+                    VirtualizingStackPanel cannot wrap and a plain WrapPanel realises every one of
+                    three thousand containers. ItemSize is authoritative - the panel lays out cells of
+                    that size rather than measuring each card.
+                -->
+                <ListBox
+                    x:Name="GamesList"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ItemsSource="{Binding ViewModel.GamesView, Mode=OneWay}"
+                    KeyboardNavigation.DirectionalNavigation="Contained"
+                    MouseDoubleClick="OnGamesMouseDoubleClick"
+                    ScrollViewer.CanContentScroll="True"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    SelectedItem="{Binding ViewModel.SelectedGame, Mode=TwoWay}"
+                    SelectionMode="Single"
+                    VirtualizingPanel.CacheLength="1,1"
+                    VirtualizingPanel.CacheLengthUnit="Page"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.ScrollUnit="Pixel"
+                    VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ui:VirtualizingWrapPanel
+                                ItemSize="{Binding DataContext.ViewModel.CardSize, Mode=OneWay, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}"
+                                Orientation="Vertical"
+                                SpacingMode="StartAndEndOnly" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Left" />
+                            <Setter Property="VerticalContentAlignment" Value="Top" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:GameCardViewModel}">
+                            <controls:GameCard />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!--
+                    The empty state. Every degraded environment lands here with a sentence that says
+                    what to do about it, rather than an unexplained blank grid or a spinner forever.
+                -->
+                <StackPanel
+                    MaxWidth="440"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding ViewModel.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <ui:SymbolIcon
+                        HorizontalAlignment="Center"
+                        FontSize="48"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Symbol="Games24" />
+
+                    <TextBlock
+                        Margin="0,12,0,0"
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource OmlSectionHeaderText}"
+                        Text="{Binding ViewModel.EmptyStateTitle, Mode=OneWay}" />
+
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource OmlBodyText}"
+                        Text="{Binding ViewModel.EmptyStateMessage, Mode=OneWay}"
+                        TextAlignment="Center" />
+
+                    <ui:Button
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Center"
+                        Command="{Binding ViewModel.ClearFiltersCommand, Mode=OneWay}"
+                        Content="Clear filters"
+                        Visibility="{Binding ViewModel.HasActiveFilters, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <ui:ProgressRing
+                        Width="48"
+                        Height="48"
+                        HorizontalAlignment="Center"
+                        IsIndeterminate="True" />
+
+                    <TextBlock
+                        Margin="0,12,0,0"
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource OmlSubtleText}"
+                        Text="{Binding ViewModel.BusyMessage, Mode=OneWay}" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>
