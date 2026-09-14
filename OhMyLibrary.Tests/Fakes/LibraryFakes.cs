@@ -72,6 +72,13 @@ public sealed class FakeGameLibraryService : IGameLibraryService
     public CountingSignal RemoteStarted { get; } = new("RefreshRemoteAsync started");
 
     /// <summary>
+    /// Raised by each <see cref="NotifyAssetsChanged"/>, which is the last link of the art chain.
+    /// Art refreshes run on a task the coordinator tracks rather than inline on the watcher thread,
+    /// so a test that raises a LibraryCache event has to wait for this before asserting.
+    /// </summary>
+    public CountingSignal AssetsChanged { get; } = new("NotifyAssetsChanged");
+
+    /// <summary>
     /// When set, every local scan awaits it before returning.
     /// </summary>
     /// <remarks>
@@ -166,6 +173,7 @@ public sealed class FakeGameLibraryService : IGameLibraryService
         _calls.Record(AssetsChangedCall);
         AssetChangeNotifications.Add([.. appIds]);
         RaiseChanged(LibraryChangeKind.Assets, [.. appIds]);
+        AssetsChanged.Raise();
     }
 
     /// <inheritdoc />

@@ -76,6 +76,18 @@ public sealed class LibrarySyncCoordinator : ILibrarySyncCoordinator, IHostedSer
     private Task _initialSync = Task.CompletedTask;
     private Task _rescan = Task.CompletedTask;
 
+    /// <summary>
+    /// The most recent art refresh. Art refreshes are driven from the watcher's debounce thread
+    /// rather than from a command, so without this they are tracked by nothing and
+    /// <see cref="StopAsync"/> can return — and the host dispose the image cache — while one is
+    /// still inside it. Waiting on the latest is enough: each one takes
+    /// <see cref="_artGate"/> first, so it cannot finish before its predecessor released it.
+    /// </summary>
+    private Task _artRefresh = Task.CompletedTask;
+
+    /// <summary>Serialises art refreshes so two bursts cannot interleave over the same app.</summary>
+    private readonly SemaphoreSlim _artGate = new(1, 1);
+
     private bool _rescanRunning;
     private bool _pendingForce;
     private bool _startupScanReached;
@@ -175,7 +187,7 @@ public sealed class LibrarySyncCoordinator : ILibrarySyncCoordinator, IHostedSer
             _pendingForce = false;
             _startupForce = false;
 
-            pending = Task.WhenAll(_initialSync, _rescan);
+            pending = Task.WhenAll(_initialSync, _rescan, _artRefresh);
         }
 
         try
@@ -233,6 +245,7 @@ public sealed class LibrarySyncCoordinator : ILibrarySyncCoordinator, IHostedSer
 
         DetachWatcher();
         _lifetime.Dispose();
+        _artGate.Dispose();
     }
 
     /// <summary>
@@ -586,6 +599,63 @@ public sealed class LibrarySyncCoordinator : ILibrarySyncCoordinator, IHostedSer
     /// The apps whose art moved. Empty means the watcher lost the events to a buffer overflow and no
     /// entry can be trusted, so everything goes.
     /// </param>
+    /// <summary>
+    /// Queues an art refresh on a task <see cref="StopAsync"/> can wait for, and drops it entirely
+    /// once shutdown has begun.
+    /// </summary>
+    /// <param name="appIds">The apps whose art moved, or empty when the watcher lost the events.</param>
+    private void RequestArtRefresh(IReadOnlyList<int> appIds)
+    {
+        lock (_sync)
+        {
+            if (_stopped || _disposed)
+            {
+                return;
+            }
+
+            _artRefresh = Task.Run(() => RunArtRefreshAsync(appIds), CancellationToken.None);
+        }
+    }
+
+    private async Task RunArtRefreshAsync(IReadOnlyList<int> appIds)
+    {
+        try
+        {
+            await _artGate.WaitAsync(_lifetime.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        try
+        {
+            // Shutdown may have started while this waited its turn; the caches it is about to touch
+            // are the ones the host is about to dispose.
+            if (_lifetime.IsCancellationRequested)
+            {
+                return;
+            }
+
+            RefreshArt(appIds);
+        }
+        finally
+        {
+            try
+            {
+                _ = _artGate.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Torn down underneath us.
+            }
+        }
+    }
+
     private void RefreshArt(IReadOnlyList<int> appIds)
     {
         try
@@ -649,7 +719,7 @@ public sealed class LibrarySyncCoordinator : ILibrarySyncCoordinator, IHostedSer
             // this order, or the new art never reaches the screen. Every other kind can move install
             // state — libraryfolders.vdf brings a whole library's manifests with it, and the client
             // rewrites appinfo.vdf and loginusers.vdf around installs too — so those still rescan.
-            RefreshArt(e.AppIds);
+            RequestArtRefresh(e.AppIds);
             return;
         }
 

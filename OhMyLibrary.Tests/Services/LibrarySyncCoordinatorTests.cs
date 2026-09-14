@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 using OhMyLibrary.App.Services;
 using OhMyLibrary.Core.Models;
@@ -256,6 +256,10 @@ public sealed class LibrarySyncCoordinatorTests
 
         _watcher.Raise(SteamFileChangeKind.LibraryCache, 570);
 
+        // The refresh runs on a task the coordinator tracks, so that shutdown cannot return while it
+        // is still inside the caches the host is about to dispose. Wait for its last link.
+        await _library.AssetsChanged.WaitAsync();
+
         // 1. the path cache
         Assert.Equal([570], _assets.Invalidated.ToArray());
 
@@ -283,6 +287,8 @@ public sealed class LibrarySyncCoordinatorTests
         await StartAndSettleAsync(coordinator);
 
         _watcher.Raise(SteamFileChangeKind.LibraryCache);
+
+        await _library.AssetsChanged.WaitAsync();
 
         Assert.Equal(1, _assets.InvalidateAllCalls);
         Assert.Equal(1, _images.ClearMemoryCalls);
@@ -331,6 +337,8 @@ public sealed class LibrarySyncCoordinatorTests
         // Cached art has nothing to do with install state, and Core's asset resolver has already
         // invalidated the apps this event names.
         _watcher.Raise(SteamFileChangeKind.LibraryCache, 570);
+
+        await _library.AssetsChanged.WaitAsync();
 
         // Drive one unforced rescan behind it. Had the art event queued a rescan of its own, it
         // would show up either as this scan being forced or as a third scan.
