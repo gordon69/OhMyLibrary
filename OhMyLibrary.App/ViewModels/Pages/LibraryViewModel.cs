@@ -1196,6 +1196,22 @@ public sealed partial class LibraryViewModel : ViewModelBase, IDisposable
                 _ = ApplyEntry(appId, byAppId.GetValueOrDefault(appId));
             }
 
+            // Membership is a function of more than the ids the event names. The clearest case is the
+            // owned list becoming authoritative for the first time: RefreshRemoteAsync names only the
+            // apps it fetched, yet that same refresh changes the answer for every row that was on the
+            // grid solely because ownership was unknown — a game that was uninstalled earlier keeps
+            // its card while no owned list exists, and must lose it once one says it is not owned.
+            //
+            // The filtered read above is the whole truth about what belongs, so anything on the grid
+            // that is missing from it goes, named or not. It is a pass over the cards, not a second
+            // read.
+            foreach (var staleAppId in _cards.Keys.Where(id => !byAppId.ContainsKey(id)).ToArray())
+            {
+                _ = ApplyEntry(staleAppId, null);
+            }
+
+            UpdateCounts();
+
             // The facet lists are counted off the cards, so they are only correct once the loop
             // above has run. Rebuilding them here is what makes the filters usable on a cold run:
             // the first Local event lands while the metadata step has not written a single genre or
@@ -1234,7 +1250,18 @@ public sealed partial class LibraryViewModel : ViewModelBase, IDisposable
     /// <param name="ct">Cancellation token.</param>
     private async Task RefreshEntryAsync(int appId, CancellationToken ct)
     {
+        // A writer to the grid like the two full loads and the partial update, so it claims a
+        // generation like them. Without this it is ordered against nothing: a load that started
+        // before the user acted still holds the newest number, finishes later, and overwrites the row
+        // this just read — the card visibly reverts to the state the user has just changed.
+        var generation = ++_loadGeneration;
+
         var entry = await _library.GetGridEntryAsync(appId, ct).ConfigureAwait(true);
+
+        if (_disposed || generation != _loadGeneration)
+        {
+            return;
+        }
 
         if (ApplyEntry(appId, entry))
         {
