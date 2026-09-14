@@ -9,6 +9,7 @@ public sealed class CountingImageCache : IImageCacheService
 {
     private readonly Lock _sync = new();
     private readonly List<string?> _sources = [];
+    private readonly List<int> _widths = [];
 
     /// <summary>How many decode requests reached the cache.</summary>
     public int Requests
@@ -34,12 +35,25 @@ public sealed class CountingImageCache : IImageCacheService
         }
     }
 
+    /// <summary>Every decode width asked for, in order, aligned with <see cref="Sources"/>.</summary>
+    public IReadOnlyList<int> Widths
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return [.. _widths];
+            }
+        }
+    }
+
     /// <inheritdoc />
     public Task<ImageSource?> GetImageAsync(string? source, int decodePixelWidth, CancellationToken ct = default)
     {
         lock (_sync)
         {
             _sources.Add(source);
+            _widths.Add(decodePixelWidth);
         }
 
         return Task.FromResult<ImageSource?>(null);

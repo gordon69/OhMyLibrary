@@ -55,7 +55,22 @@ public sealed partial class GameCardViewModel : ViewModelBase
     private HashSet<int> _tagIds = [];
     private HashSet<long> _collectionIds = [];
     private GameEntry _entry;
+    /// <summary>
+    /// Whether a decode has already been asked for at the current <see cref="CardWidth"/>. Purely an
+    /// idempotence guard for <see cref="EnsureCoverAsync"/>, which a container calls every time it is
+    /// realised.
+    /// </summary>
     private bool _coverRequested;
+
+    /// <summary>
+    /// How many containers currently show this card. Recycling means a card is realised and
+    /// unrealised repeatedly, and the two states have to be told apart from "has ever been realised":
+    /// using the decode latch for that made every card in a library the user had once scrolled
+    /// through re-decode on every art event, which is work proportional to the whole library for a
+    /// change that concerned a handful of apps. A counter rather than a flag because a realise for
+    /// the new item can arrive before the unrealise for the old one during recycling.
+    /// </summary>
+    private int _realisedCount;
 
     /// <summary>Creates a card for one library row.</summary>
     /// <param name="owner">The page view model that owns the grid and the commands.</param>
@@ -304,15 +319,21 @@ public sealed partial class GameCardViewModel : ViewModelBase
         // realised containers ever re-read them.
         OnPropertyChanged(string.Empty);
 
-        // Only a card that has already asked for its cover — that is, one a container has realised —
-        // re-decodes here, and only when the bytes behind it actually moved. A card that has never
-        // been realised keeps _coverRequested false, so the next realisation reads the new art path
-        // by itself; asking on its behalf is what turned the virtualised grid into one decode per
-        // game in the library on every refresh, whether the game was on screen or not. See
-        // ReloadCover for why the latch, not Cover, is the test: a realised card whose art is
-        // missing has a null Cover for good, and "Cover is null" made every such card re-decode on
-        // every event forever.
-        if (artChanged && _coverRequested)
+        if (!artChanged)
+        {
+            return;
+        }
+
+        // The decode latch has to go regardless: the bytes it was set for are gone, so the next
+        // realisation must read the new art rather than short-circuit on a stale "already asked".
+        _coverRequested = false;
+
+        // Only a card a container is showing *right now* re-decodes immediately. One that is not on
+        // screen simply picks the new art up when it is next realised; decoding on its behalf costs a
+        // file read, a JPEG decode and — where Steam cached no art — a CDN request that nobody is
+        // waiting to see, and doing it for every row turns a change affecting a handful of apps into
+        // work proportional to the whole library.
+        if (IsRealised)
         {
             ReloadCover();
         }
@@ -432,8 +453,41 @@ public sealed partial class GameCardViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Whether a container is showing this card right now.</summary>
+    public bool IsRealised => Volatile.Read(ref _realisedCount) > 0;
+
+    /// <summary>
+    /// Called when a container starts showing this card, and asks for the cover.
+    /// </summary>
+    /// <param name="ct">Cancellation token, normally the page's lifetime token.</param>
+    public void OnRealised(CancellationToken ct = default)
+    {
+        _ = Interlocked.Increment(ref _realisedCount);
+
+        // Fire and forget exactly as before: idempotent, never throws.
+        _ = EnsureCoverAsync(ct);
+    }
+
+    /// <summary>
+    /// Called when a container stops showing this card, so a later art change knows not to decode for
+    /// it. Never drops below zero: WPF can raise the teardown twice for one container.
+    /// </summary>
+    public void OnUnrealised()
+    {
+        if (Volatile.Read(ref _realisedCount) > 0)
+        {
+            _ = Interlocked.Decrement(ref _realisedCount);
+        }
+    }
+
     /// <summary>Re-decodes the cover after the configured card width changed.</summary>
     /// <param name="cardWidth">The new cover width in device-independent pixels.</param>
+    /// <remarks>
+    /// Clearing the latch alone is not enough for a card that is already on screen: nothing realises
+    /// an on-screen container a second time, so it would keep the bitmap decoded at the old width and
+    /// — because the latch is the guard the art-change path used to test — stop responding to art
+    /// changes for the rest of the session. So a realised card is asked again here and now.
+    /// </remarks>
     public void Resize(double cardWidth)
     {
         if (Math.Abs(CardWidth - cardWidth) < 0.5)
@@ -443,6 +497,11 @@ public sealed partial class GameCardViewModel : ViewModelBase
 
         CardWidth = cardWidth;
         _coverRequested = false;
+
+        if (IsRealised)
+        {
+            _ = EnsureCoverAsync(Owner.PageLifetime);
+        }
     }
 
     /// <summary>

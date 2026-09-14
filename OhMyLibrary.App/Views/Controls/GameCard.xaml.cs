@@ -22,15 +22,43 @@ public partial class GameCard : UserControl
         InitializeComponent();
 
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
         DataContextChanged += OnDataContextChanged;
         ContextMenuOpening += OnContextMenuOpening;
     }
 
     private GameCardViewModel? ViewModel => DataContext as GameCardViewModel;
 
-    private void OnLoaded(object sender, RoutedEventArgs e) => RequestCover();
+    /// <summary>True once this container has told a view model it is showing it.</summary>
+    /// <remarks>
+    /// Realisation arrives twice for the same card — <c>Loaded</c> and <c>DataContextChanged</c> both
+    /// fire when a container first appears — and the view model counts realisations, so the control
+    /// has to report each transition once rather than once per event.
+    /// </remarks>
+    private GameCardViewModel? _realised;
 
-    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e) => RequestCover();
+    private void OnLoaded(object sender, RoutedEventArgs e) => Realise(ViewModel);
+
+    private void OnUnloaded(object sender, RoutedEventArgs e) => Realise(null);
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e) =>
+        // Recycling hands this container a different game. The card that was here stops being on
+        // screen at exactly this moment, and if nobody says so it counts as realised for the rest of
+        // the session — which is what made one art change re-decode every card the user had ever
+        // scrolled past.
+        Realise(IsLoaded ? ViewModel : null);
+
+    private void Realise(GameCardViewModel? viewModel)
+    {
+        if (ReferenceEquals(_realised, viewModel))
+        {
+            return;
+        }
+
+        _realised?.OnUnrealised();
+        _realised = viewModel;
+        _realised?.OnRealised(viewModel?.Owner.PageLifetime ?? default);
+    }
 
     private void OnContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
@@ -42,15 +70,4 @@ public partial class GameCard : UserControl
         }
     }
 
-    private void RequestCover()
-    {
-        if (ViewModel is not { } viewModel)
-        {
-            return;
-        }
-
-        // Fire and forget on purpose: the call is idempotent, it never throws, and awaiting it here
-        // would mean an async void handler for no gain. A cover simply appears when it is ready.
-        _ = viewModel.EnsureCoverAsync(viewModel.Owner.PageLifetime);
-    }
 }

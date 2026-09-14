@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -128,8 +128,12 @@ public sealed class LibraryScalingTests(ITestOutputHelper output)
             var viewModel = LibraryScalingBenchmark.NewViewModelWithCountingImages(before, out var library, out var images);
             viewModel.InitialiseAsync().GetAwaiter().GetResult();
 
-            // What a realised container does, and the only thing that marks a card as being on screen.
-            viewModel.Games[0].EnsureCoverAsync().GetAwaiter().GetResult();
+            // What a realised container does. OnRealised is the only thing that marks a card as
+            // being on screen: EnsureCoverAsync used to double as that marker, and because nothing
+            // ever cleared it, every card the user had once scrolled past counted as on screen for
+            // the rest of the session.
+            viewModel.Games[0].OnRealised();
+            Pump();
 
             library.Games[0] = after;
             library.RaiseChanged(LibraryChangeKind.Assets, after.AppId);
@@ -164,7 +168,8 @@ public sealed class LibraryScalingTests(ITestOutputHelper output)
             library.RaiseChanged(LibraryChangeKind.Assets, after.AppId);
             Pump();
 
-            viewModel.Games[0].EnsureCoverAsync().GetAwaiter().GetResult();
+            viewModel.Games[0].OnRealised();
+            Pump();
 
             sources = images.Sources;
             viewModel.Dispose();
@@ -174,6 +179,103 @@ public sealed class LibraryScalingTests(ITestOutputHelper output)
         // only reached because the fake cache answers nothing for the local path.
         Assert.Equal(after.Assets!.BestCover, sources[0]);
         Assert.DoesNotContain(before[0].Assets!.BestCover, sources);
+    }
+
+    /// <summary>
+    /// Realised is a state, not a milestone. A container that scrolls away is recycled onto another
+    /// game, and the card it left has to stop counting as on screen — otherwise, once the user has
+    /// scrolled the library through once, every card in it is "realised" for the rest of the session
+    /// and a single art change decodes the whole library again.
+    /// </summary>
+    [Fact]
+    public async Task ACardARecycledContainerLeftBehindStopsCountingAsOnScreen()
+    {
+        List<GameEntry> before = LibraryScalingBenchmark.SyntheticEntries(1);
+        GameEntry after = MoveArt(before[0]);
+
+        IReadOnlyList<string?> sources = [];
+
+        await WpfApplicationFixture.Dispatcher.InvokeAsync(() =>
+        {
+            var viewModel = LibraryScalingBenchmark.NewViewModelWithCountingImages(before, out var library, out var images);
+            viewModel.InitialiseAsync().GetAwaiter().GetResult();
+
+            var card = viewModel.Games[0];
+
+            // Scrolled into view, then scrolled away and the container handed to another game.
+            card.OnRealised();
+            Pump();
+            card.OnUnrealised();
+
+            Assert.False(card.IsRealised);
+
+            library.Games[0] = after;
+            library.RaiseChanged(LibraryChangeKind.Assets, after.AppId);
+            Pump();
+
+            sources = images.Sources;
+            viewModel.Dispose();
+        }).ConfigureAwait(true);
+
+        // The art it carried while it was on screen was decoded; the new art was not, because nobody
+        // is looking at it. The previous test covers it picking the new art up when it returns.
+        Assert.Equal(before[0].Assets!.BestCover, sources[0]);
+        Assert.DoesNotContain(after.Assets!.BestCover, sources);
+    }
+
+    /// <summary>
+    /// Changing the card width has to re-decode a card that is on screen, and must not cost it the
+    /// art-change path afterwards. Clearing the decode latch alone did both wrong: nothing realises
+    /// an on-screen container a second time, so the card kept the old-width bitmap, and because the
+    /// latch was also what the art-change path tested, it stopped following art changes entirely.
+    /// </summary>
+    [Fact]
+    public async Task ResizingAnOnScreenCardReDecodesItAndLeavesItFollowingArtChanges()
+    {
+        List<GameEntry> before = LibraryScalingBenchmark.SyntheticEntries(1);
+        GameEntry after = MoveArt(before[0]);
+
+        IReadOnlyList<string?> sources = [];
+        IReadOnlyList<int> widthsAfterResize = [];
+        var originalWidth = 0;
+        var newWidth = 0;
+
+        await WpfApplicationFixture.Dispatcher.InvokeAsync(() =>
+        {
+            var viewModel = LibraryScalingBenchmark.NewViewModelWithCountingImages(before, out var library, out var images);
+            viewModel.InitialiseAsync().GetAwaiter().GetResult();
+
+            var card = viewModel.Games[0];
+            card.OnRealised();
+            Pump();
+
+            originalWidth = (int)Math.Round(card.CardWidth);
+            newWidth = originalWidth + 120;
+
+            card.Resize(newWidth);
+            Pump();
+
+            // Captured HERE, before anything else can cause a decode. Reading the widths at the end
+            // of the test would let the art change below supply the second width all by itself — it
+            // decodes at whatever CardWidth now holds — and the assertion would hold with the resize
+            // doing nothing at all.
+            widthsAfterResize = images.Widths;
+
+            library.Games[0] = after;
+            library.RaiseChanged(LibraryChangeKind.Assets, after.AppId);
+            Pump();
+
+            sources = images.Sources;
+            viewModel.Dispose();
+        }).ConfigureAwait(true);
+
+        // The resize itself asked again, at the new width.
+        Assert.Contains(originalWidth, widthsAfterResize);
+        Assert.Contains(newWidth, widthsAfterResize);
+
+        // And the art change that followed the resize still reached it: clearing the decode latch
+        // must not cost the card the art-change path.
+        Assert.Contains(after.Assets!.BestCover, sources);
     }
 
     /// <summary>
