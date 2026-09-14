@@ -1,5 +1,6 @@
 using OhMyLibrary.Core.Abstractions;
 using OhMyLibrary.Core.Models;
+using OhMyLibrary.Tests.Infrastructure;
 
 namespace OhMyLibrary.Tests.Fakes;
 
@@ -31,12 +32,34 @@ public sealed class FakeGameRepository : IGameRepository
     /// <summary>Exception to throw from every member, to exercise the degradation paths.</summary>
     public Exception? Failure { get; set; }
 
+    /// <summary>
+    /// When set, <see cref="GetAllAsync"/> hands back the rows it captured on entry and then waits
+    /// for this before returning, so a test can invalidate the library mid-read — the window a
+    /// snapshot could be written back over an invalidation that arrived while it was being built.
+    /// </summary>
+    public TaskCompletionSource? ReadGate { get; set; }
+
+    /// <summary>Raised as each <see cref="GetAllAsync"/> begins, before it waits on the gate.</summary>
+    public CountingSignal ReadStarted { get; } = new("GetAllAsync started");
+
     /// <inheritdoc />
-    public Task<IReadOnlyList<GameEntry>> GetAllAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<GameEntry>> GetAllAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         Throw();
-        return Task.FromResult<IReadOnlyList<GameEntry>>([.. Rows]);
+
+        // Snapshot before the wait: this is the database read, and what it returns is what the rows
+        // said at the moment it ran, not at the moment it got around to answering.
+        IReadOnlyList<GameEntry> snapshot = [.. Rows];
+
+        ReadStarted.Raise();
+
+        if (ReadGate is { } gate)
+        {
+            await gate.Task.WaitAsync(ct).ConfigureAwait(false);
+        }
+
+        return snapshot;
     }
 
     /// <inheritdoc />

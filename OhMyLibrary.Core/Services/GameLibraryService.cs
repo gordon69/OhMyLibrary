@@ -1,4 +1,4 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OhMyLibrary.Core.Abstractions;
@@ -77,6 +77,14 @@ public sealed class GameLibraryService : IGameLibraryService
     private readonly SemaphoreSlim _cacheGate = new(1, 1);
 
     private volatile IReadOnlyList<GameEntry>? _cache;
+
+    /// <summary>
+    /// Bumped by every <see cref="RaiseChanged"/>. A build publishes its result only if this has
+    /// not moved since the build started, which is what stops a snapshot taken before an
+    /// invalidation from being written back after it.
+    /// </summary>
+    private long _cacheVersion;
+
     private volatile IReadOnlyDictionary<int, TransferProgress> _liveProgress =
         FrozenDictionary<int, TransferProgress>.Empty;
     private volatile string? _lastError;
@@ -144,8 +152,21 @@ public sealed class GameLibraryService : IGameLibraryService
                 return cached;
             }
 
+            // Read the version before the build, not after: BuildLibraryAsync awaits the database,
+            // and a refresh that commits rows during that await raises LibraryChanged, which clears
+            // the cache. Publishing unconditionally here would write the pre-refresh snapshot back
+            // over that invalidation and nothing would ever clear it again — callers would serve
+            // rows that are permanently one refresh behind.
+            var version = Interlocked.Read(ref _cacheVersion);
             var built = await BuildLibraryAsync(ct).ConfigureAwait(false);
-            _cache = built;
+
+            if (Interlocked.Read(ref _cacheVersion) == version)
+            {
+                _cache = built;
+            }
+
+            // The snapshot is still returned either way. It is what the database held a moment ago,
+            // and the subscriber that invalidated it is about to be told to read again.
             return built;
         }
         finally
@@ -680,6 +701,9 @@ public sealed class GameLibraryService : IGameLibraryService
 
     private void RaiseChanged(LibraryChangeKind kind, IReadOnlyList<int>? appIds)
     {
+        // Bump before clearing, so a build that is mid-flight sees a moved version even if it
+        // checks between these two statements.
+        _ = Interlocked.Increment(ref _cacheVersion);
         _cache = null;
 
         var handler = LibraryChanged;

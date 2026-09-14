@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OhMyLibrary.Core.Abstractions;
 using OhMyLibrary.Core.Models;
@@ -600,6 +600,40 @@ public sealed class GameLibraryServiceTests
         await cts.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Service().GetGamesAsync(cts.Token));
+    }
+
+    /// <summary>
+    /// A build that started before an invalidation must not be published after it. The cached list is
+    /// cleared by every change, so writing a pre-change snapshot back over that clearing leaves the
+    /// service serving rows that are permanently one refresh behind, with nothing left to clear them.
+    /// </summary>
+    [Fact]
+    public async Task AReadThatStartedBeforeAChangeDoesNotOverwriteTheInvalidationItLandsAfter()
+    {
+        _games.Rows.Add(Row(570, "Before", owned: true, installed: true, type: "game"));
+
+        var service = Service();
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _games.ReadGate = gate;
+
+        // A read begins and reaches the database, which now holds "Before".
+        var reading = service.GetGamesAsync();
+        await _games.ReadStarted.WaitAsync();
+
+        // A refresh commits while that read is in flight and invalidates the cache. The rescan is
+        // what raises LibraryChanged, which is what clears it.
+        _games.Rows[0] = Row(570, "After", owned: true, installed: true, type: "game");
+        await service.RefreshLocalAsync(force: true);
+
+        // Only now does the first read get its answer — the rows as they were before the refresh.
+        gate.SetResult();
+        var stale = await reading;
+        Assert.Equal("Before", Assert.Single(stale).Name);
+
+        // The next caller must see the refresh, not the snapshot that finished after it.
+        _games.ReadGate = null;
+        var fresh = await service.GetGamesAsync();
+        Assert.Equal("After", Assert.Single(fresh).Name);
     }
 
     private GameLibraryService Service() =>
